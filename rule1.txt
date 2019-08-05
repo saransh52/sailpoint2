@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule created="1560885114459" id="4028b8816b570aec016b6c00b65b02d9" language="beanshell" modified="1560911478647" name="ChangeRole" type="JDBCBuildMap">
+  <Description>This rule is used by the JDBC connector to build a map representation of the Resultset.</Description>
+  <Signature returnType="Map">
+    <Inputs>
+      <Argument name="log">
+        <Description>
+          The log object associated with the SailPointContext.
+        </Description>
+      </Argument>
+      <Argument name="context">
+        <Description>
+          A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
+        </Description>
+      </Argument>
+      <Argument name="application">
+        <Description>
+          The application whose data file is being processed.
+        </Description>
+      </Argument>
+      <Argument name="schema">
+        <Description>
+          The Schema currently in use.
+        </Description>
+      </Argument>
+      <Argument name="state">
+        <Description>
+          A Map containing state information.
+        </Description>
+      </Argument>
+      <Argument name="result">
+        <Description>
+          The ResultSet from database.
+        </Description>
+      </Argument>
+      <Argument name="connection">
+        <Description>
+          A connection object to connect to database.
+        </Description>
+      </Argument>
+    </Inputs>
+    <Returns>
+      <Argument name="map">
+        <Description>
+          A Map of the resource object assembled from the data.
+        </Description>
+      </Argument>
+    </Returns>
+  </Signature>
+  <Source>import java.sql.Connection;
+  import java.sql.DriverManager;
+  import java.sql.PreparedStatement;
+  import java.sql.SQLException;
+  import java.sql.Types;
+  import java.util.List;
+  import sailpoint.api.SailPointContext;
+  import sailpoint.connector.JDBCConnector;
+  import sailpoint.object.Application;
+  import sailpoint.object.ProvisioningPlan;
+  import sailpoint.object.ProvisioningPlan.AccountRequest;
+  import sailpoint.object.ProvisioningPlan.AttributeRequest;
+  import sailpoint.object.ProvisioningResult;
+  import sailpoint.object.Schema;
+  import sailpoint.tools.xml.XMLObjectFactory;
+  import org.apache.commons.logging.LogFactory;
+  import org.apache.commons.logging.Log;
+
+  public String getAttributeRequestValue(AccountRequest acctReq, String attribute) {
+    if ( acctReq != null ) {
+      AttributeRequest attrReq = acctReq.getAttributeRequest(attribute);
+      if ( attrReq != null ) {
+        return attrReq.getValue();
+      }
+    }
+    return null;
+  }
+  AccountRequest acctRequest = (AccountRequest) request;
+  ProvisioningResult result = new ProvisioningResult();
+  try {
+    //Ideally we should first check to see if the account already exists.
+    //As written, this just assumes it does not.
+    // Modify account request -- change role
+   // _log.debug( "Operation [" + account.getOperation() + "] detected." );
+    PreparedStatement statement = connection.prepareStatement( "update tbl_clients set titleId = ? where username = ?" );
+    statement.setString (2,(String) attrReq.getNativeIdentity());
+    //AttributeRequest attrReq = account.getAttributeRequest(acctReq, "titleID");
+	String title = getAttributeRequestValue(acctReq, "titleID");
+	//pst.setInt(1,Integer.parseInt(roleId));
+    statement.setInt(1,Integer.parseInt(title));
+    //_log.debug( "Preparing to execute:"+statement.toString() );
+    statement.executeUpdate();
+
+  }
+  result.setStatus( ProvisioningResult.STATUS_COMMITTED );
+                                                          
+
+  catch( SQLException e ) {
+    log.error( e );
+    result.setStatus( ProvisioningResult.STATUS_FAILED );
+    result.addError( e );
+  }
+  log.debug( "result [" + result.toXml(false)+ "]");
+  return result;
+  </Source>
+</Rule>
